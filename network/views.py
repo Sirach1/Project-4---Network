@@ -1,14 +1,37 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+import json
 
-from .models import User
+from .models import User, Post, Comment, Like, Follow
 
 
 def index(request):
-    return render(request, "network/index.html")
+    posts =  Post.objects.all()
+    return render(request, "network/index.html", {
+        "posts": posts
+    })
+
+@csrf_exempt
+@login_required
+def create_post(request):
+    if not request.method == "POST":
+        return JsonResponse({"error": "Only POST request is allowed"})
+    
+    data = json.loads(request.body)
+    content = data.get("content", "")
+    if not content:
+        return JsonResponse({"error": "Please type something."}, status=400)
+    post  = Post(
+        user = request.user,
+        content = content
+    )
+    post.save()
+    return JsonResponse({"message": "Post had been published."}, status=200)
 
 
 def login_view(request):

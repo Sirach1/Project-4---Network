@@ -1,5 +1,37 @@
 {% extends "network/layout.html" %}
+{% load static %}
 
 {% block body %}
-    TODO
+<div class="col" style="padding: 20px;">
+    <div class="card">
+        <div class="card-header">
+            New Post
+        </div>
+        <div class="card-body">
+            {% csrf_token %}
+            <textarea class="form-control" placeholder="Leave a comment here" id="post-content" style="height: 100px"
+                autofocus></textarea>
+            <button id="post-submit" class="btn btn-primary btn-sm">Post</button>
+            <p id="error" style="color: red;"></p>
+            <p id="success" style="color: green;"></p>
+        </div>
+    </div>
+    {% for post in posts %}
+    <div class="card">
+        <div class="card-header">
+            Featured
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">Special title treatment</h5>
+            <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+            <a href="#" class="btn btn-primary">Go somewhere</a>
+        </div>
+    </div>
+    {% empty %}
+    <p>No Posts Found.</p>
+    {% endfor %}
+</div>
+{% endblock %}
+{% block script %}
+<script src="{% static 'network/index.js' %}"></script>
 {% endblock %}
