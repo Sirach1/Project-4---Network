@@ -1,13 +1,29 @@
 document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('#nav-profile').addEventListener('click', () => {
+        document.querySelector('#index-view').style.display = 'none';
+        document.querySelector('#following-view').style.display = 'none';
+        document.querySelector('#profile-view').style.display = 'block';
+    });
+    document.querySelector('#nav-index').addEventListener('click', () => {
+        document.querySelector('#index-view').style.display = 'block';
+        document.querySelector('#following-view').style.display = 'none';
+        document.querySelector('#profile-view').style.display = 'none';
+    });
+    document.querySelector('#nav-following').addEventListener('click', () => {
+        document.querySelector('#index-view').style.display = 'none';
+        document.querySelector('#following-view').style.display = 'block';
+        document.querySelector('#profile-view').style.display = 'none';
+    });
+
     const submit_btn = document.querySelector('#post-submit').addEventListener('click', create_post);
     document.addEventListener('click', (event) => {
         const element = event.target;
-        if (element.className === 'heart') {
-            console.log("click");
+        console.log(element.className);
+        if (element.className.baseVal === 'heart') {
             fetch('/like_post', {
                 method: 'POST',
                 body: JSON.stringify({
-                    post:element.closest('.card').dataset.post
+                    post_id:element.closest('.card').dataset.post_id
                 })
             }).then(response => response.json()).then(data => {
                 console.log(data);
@@ -15,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
 
 function create_post() {
     fetch('/create_post', {

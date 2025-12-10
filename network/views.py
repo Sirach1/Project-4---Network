@@ -44,15 +44,17 @@ def like_post(request):
         return JsonResponse({"error": "Only Post requests are accepted"})
     
     data = json.loads(request.body)
+    post = Post.objects.get(pk=data.get("post_id"))
     try:
-        like = Like.objects.get(user=request.user, post=data.post)
+        like = Like.objects.get(user=request.user, post=post)
         like.delete()
         return JsonResponse({"message": "Successfully unliked the post."}, status=200)
     except Like.DoesNotExist:
         like = Like(
             user=request.user,
-            post=data.post
+            post=post
         )
+        like.save()
         return JsonResponse({"message": "Successfully liked a post."}, status=200)
 
 def login_view(request):
