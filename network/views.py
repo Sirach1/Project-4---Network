@@ -11,7 +11,7 @@ from .models import User, Post, Comment, Like, Follow
 
 
 def index(request):
-    posts =  Post.objects.all()
+    posts =  Post.objects.all()[::-1]
     return render(request, "network/index.html", {
         "posts": posts
     })
@@ -31,8 +31,29 @@ def create_post(request):
         content = content
     )
     post.save()
-    return JsonResponse({"message": "Post had been published."}, status=200)
+    return JsonResponse({"message": "Post had been published.", "post": {
+        "user": post.user.username,
+        "content": post.content,
+        "timestamp": post.timestamp
+    }}, status=200)
 
+@csrf_exempt
+@login_required
+def like_post(request):
+    if not request.method == 'POST':
+        return JsonResponse({"error": "Only Post requests are accepted"})
+    
+    data = json.loads(request.body)
+    try:
+        like = Like.objects.get(user=request.user, post=data.post)
+        like.delete()
+        return JsonResponse({"message": "Successfully unliked the post."}, status=200)
+    except Like.DoesNotExist:
+        like = Like(
+            user=request.user,
+            post=data.post
+        )
+        return JsonResponse({"message": "Successfully liked a post."}, status=200)
 
 def login_view(request):
     if request.method == "POST":
