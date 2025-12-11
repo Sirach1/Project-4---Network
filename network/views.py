@@ -6,12 +6,15 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 import json
+from django.db.models import Prefetch
 
 from .models import User, Post, Comment, Like, Follow
 
 
 def index(request):
-    posts =  Post.objects.all()[::-1]
+    liked_posts = Like.objects.filter(user=request.user)
+    # Setting instructions for prefetch
+    posts =  Post.objects.prefetch_related(Prefetch("likes", queryset=liked_posts, to_attr="is_liked"))[::-1]
     return render(request, "network/index.html", {
         "posts": posts
     })
@@ -48,7 +51,7 @@ def like_post(request):
     try:
         like = Like.objects.get(user=request.user, post=post)
         like.delete()
-        return JsonResponse({"message": "Successfully unliked the post."}, status=200)
+        return JsonResponse({"message": "Successfully unliked the post."}, status=201)
     except Like.DoesNotExist:
         like = Like(
             user=request.user,
@@ -56,6 +59,27 @@ def like_post(request):
         )
         like.save()
         return JsonResponse({"message": "Successfully liked a post."}, status=200)
+    
+@login_required
+def profile(request, username):
+    user = User.objects.get(username=username)
+    liked_posts = Like.objects.filter(user=request.user)
+    posts = user.posts.prefetch_related(Prefetch("likes", queryset=liked_posts, to_attr="is_liked"))[::-1]
+
+    return render(request, "network/index.html", {
+        "posts": posts,
+        "user": user,
+        "profile": True
+    })
+
+@csrf_exempt
+@login_required
+def follow(request):
+    if request.method == 'POST':
+        pass
+    
+    return render(request, "network/index.html", {})
+
 
 def login_view(request):
     if request.method == "POST":
