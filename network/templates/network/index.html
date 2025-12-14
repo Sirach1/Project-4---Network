@@ -8,27 +8,31 @@
         <h1>Following</h1>
 
     </div>
-    {% if profile %}
-    <div id="profile-view">
+    {% if user_profile %}
+    <div id="profile-view" data-user_profile="{{user_profile}}">
         <h1>Profile</h1>
         <div class="row align-items-start px-4 gy-3">
             <div class="col-auto text-start">
                 <img src="{% static 'network/default-profile-account.jpg' %}" class="img-fluid rounded-circle border"
                     style="width: 150px; height: 150px; object-fit: cover;">
-                <h6 class="mt-2">{{ user.username }}</h6>
+                <h6 class="mt-2">{{ user_profile.username }}</h6>
             </div>
 
             <div class="col-auto text-start">
                 <h4>Followers</h4>
-                <p id="follower_count" class="mb-0">{{ user.followers.count }}</p>
+                <p id="follower_count" class="mb-0">{{ user_profile.followers.count }}</p>
             </div>
 
             <div class="col-auto text-start">
                 <h4>Following</h4>
-                <p id="following_count" class="mb-0">{{ user.following.count }}</p>
+                <p id="following_count" class="mb-0">{{ user_profile.following.count }}</p>
             </div>
-            {% if not user == request.user %}
+            {% if not user_profile == request.user %}
+                {% if not followed %}
                 <button id="follow-btn" class="btn btn-primary">Follow</button>
+                {% else %}
+                <button id="follow-btn" class="btn btn-outline-primary">Unfollow</button>
+                {% endif %}
             {% endif %}
 
         </div>
@@ -41,14 +45,17 @@
             <div class="card-header">
                 <strong>New Post</strong>
             </div>
-            <div class="card-body">
+            <form class="card-body" action="{% url 'index' %}" method="post">
                 {% csrf_token %}
-                <textarea class="form-control" placeholder="Share your thoughts." id="post-content"
+                <textarea name="content" class="form-control" placeholder="Share your thoughts." id="post-content"
                     style="height: 100px" autofocus></textarea>
-                <button id="post-submit" class="btn btn-primary btn-sm mt-2">Post</button>
-                <p id="error" style="color: red;"></p>
-                <p id="success" style="color: green;"></p>
-            </div>
+                <button type="submit" id="post-submit" class="btn btn-primary btn-sm mt-2">Post</button>
+                {% if error %}
+                <p id="error" style="color: red;">{{error}}</p>
+                {% elif sucess %}
+                <p id="success" style="color: green;">{{success}}</p>
+                {% endif %}
+            </form>
         </div>
     </div>
     {% endif %}
