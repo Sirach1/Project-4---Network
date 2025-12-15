@@ -4,12 +4,9 @@
 {% block body %}
 <div style="padding: 10px;">
 
-    <div id="following-view" style="display: none;">
-        <h1>Following</h1>
-
-    </div>
+    {% if user.is_authenticated %}
     {% if user_profile %}
-    <div id="profile-view" data-user_profile="{{user_profile}}">
+    <div id="profile-view" data-user_profile="{{user_profile.id}}">
         <h1>Profile</h1>
         <div class="row align-items-start px-4 gy-3">
             <div class="col-auto text-start">
@@ -28,14 +25,22 @@
                 <p id="following_count" class="mb-0">{{ user_profile.following.count }}</p>
             </div>
             {% if not user_profile == request.user %}
-                {% if not followed %}
-                <button id="follow-btn" class="btn btn-primary">Follow</button>
+            <button type="button"
+                class="btn {% if not followed %} btn-primary {% else %} btn-outline-primary {% endif %} follow-btn">
+                {% if followed %}
+                Unfollow
                 {% else %}
-                <button id="follow-btn" class="btn btn-outline-primary">Unfollow</button>
+                Follow
                 {% endif %}
+            </button>
             {% endif %}
 
         </div>
+
+    </div>
+    {% elif request.resolver_match.url_name == 'follow' %}
+    <div id="following-view">
+        <h1>Following</h1>
 
     </div>
     {% else %}
@@ -63,16 +68,16 @@
     <div class="column" style="padding: 20px; gap: 20px; display: flex; flex-direction: column;">
 
         <div id="all_post">
-            {% for post in posts %}
+            {% for post in page_obj %}
             <div class="card" data-post_id="{{post.id}}">
-                <div class="card-header" data-user="{{post.user}}" style="background-color: white;">
+                <div class="card-header" style="background-color: white;">
                     <a href="{% url 'profile' post.user %}">
                         <h4>{{post.user}}</h4>
                     </a>
                 </div>
-                <div class="card-body">
-                    <p class="card-text">{{post.content}}</p>
-                    <p class="card-text">{{post.timestamp}}</p>
+                <div class="card-body" data-content="{{post.content}}">
+                    <p class="card-text content">{{post.content}}</p>
+                    <p class="card-text timestamp">{{post.timestamp}}</p>
 
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                         viewBox="0 0 16 16">
@@ -83,7 +88,7 @@
 
                     <p class="like_count" style="display: inline;">{{post.likes.count}}</p>
                     {% if post.user == request.user %}
-                    <a href="#">Edit</a>
+                    <button type="button" class="btn btn-link p-0 align-baseline edit">Edit</button>
                     {% endif %}
                 </div>
             </div>
@@ -93,6 +98,28 @@
         </div>
 
     </div>
+
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+    {% else %}
+    Please <a href="{% url 'login' %}">Login</a> first.
+    {% endif %}
+
 </div>
 
 {% endblock %}

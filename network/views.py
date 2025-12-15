@@ -7,16 +7,23 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 import json
 from django.db.models import Prefetch
+from django.core.paginator import Paginator
 
-from .models import User, Post, Comment, Like, Follow
+from .models import User, Post, Like, Follow
 
 
 def index(request):
-    liked_posts = Like.objects.filter(user=request.user)
+    if request.user.is_authenticated:
+        liked_posts = Like.objects.filter(user=request.user)
+    else:
+        liked_posts = Like.objects.none()
     # Setting instructions for prefetch
     posts = Post.objects.prefetch_related(
         Prefetch("likes", queryset=liked_posts, to_attr="is_liked")
     )[::-1]
+    paginator = Paginator(posts, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     if request.method == "POST":
         content = request.POST["content"]
         if not content:
@@ -29,7 +36,7 @@ def index(request):
         post.save()
         return render(request, "network/index.html", {"posts": posts, "success": "Post is published"})
 
-    return render(request, "network/index.html", {"posts": posts})
+    return render(request, "network/index.html", {"posts": posts, "page_obj": page_obj})
 
 
 @csrf_exempt
@@ -57,7 +64,7 @@ def profile(request, username):
     posts = user.posts.prefetch_related(
         Prefetch("likes", queryset=liked_posts, to_attr="is_liked")
     )[::-1]
-    followed = user in request.user.following.all()
+    followed = request.user.following.filter(following=user).exists()
 
     return render(
         request,
@@ -65,6 +72,17 @@ def profile(request, username):
         {"posts": posts, "user_profile": user, "followed": followed},
     )
 
+@csrf_exempt
+@login_required
+def update_post(request):
+    if not request.method == 'POST':
+        return JsonResponse({"error": "Only post requests are allowed."}, status=400)
+    data = json.loads(request.body)
+    post = Post.objects.get(pk=data.get("post_id"))
+    content = data.get("content")
+    post.content = content
+    post.save()
+    return JsonResponse({"message": "Post is updated"}, status=200)
 
 @csrf_exempt
 @login_required
@@ -72,22 +90,24 @@ def follow(request):
     if request.method == "POST":
         data = json.loads(request.body)
         try:
-            user_profile = User.objects.get(data.get("user_profile"))
+            user_profile = User.objects.get(pk=data.get("userProfile"))
             follow_rec = Follow.objects.get(
                 follower=request.user, following=user_profile
             )
             follow_rec.delete()
             return JsonResponse(
-                {"message": f"You have unfollowed {user_profile.username}."}, status=201
+                {"message": f"You have unfollowed {user_profile.username}.", "followed": False}, status=201
             )
         except Follow.DoesNotExist:
             new_follow = Follow(follower=request.user, following=user_profile)
             new_follow.save()
             return JsonResponse(
-                {"message": f"You have followed {user_profile.username}."}, status=201
+                {"message": f"You have followed {user_profile.username}.", "followed": True}, status=201
             )
 
-    return render(request, "network/index.html", {})
+    following = request.user.following.values_list('following', flat=True)
+    posts = Post.objects.filter(user__in=following)
+    return render(request, "network/index.html", {"posts": posts})
 
 
 def login_view(request):
