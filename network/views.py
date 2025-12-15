@@ -36,7 +36,7 @@ def index(request):
         post.save()
         return render(request, "network/index.html", {"posts": posts, "success": "Post is published"})
 
-    return render(request, "network/index.html", {"posts": posts, "page_obj": page_obj})
+    return render(request, "network/index.html", {"posts": page_obj})
 
 
 @csrf_exempt
@@ -64,12 +64,15 @@ def profile(request, username):
     posts = user.posts.prefetch_related(
         Prefetch("likes", queryset=liked_posts, to_attr="is_liked")
     )[::-1]
+    paginator = Paginator(posts, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     followed = request.user.following.filter(following=user).exists()
 
     return render(
         request,
         "network/index.html",
-        {"posts": posts, "user_profile": user, "followed": followed},
+        {"posts": page_obj, "user_profile": user, "followed": followed},
     )
 
 @csrf_exempt
@@ -107,7 +110,10 @@ def follow(request):
 
     following = request.user.following.values_list('following', flat=True)
     posts = Post.objects.filter(user__in=following)
-    return render(request, "network/index.html", {"posts": posts})
+    paginator = Paginator(posts, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, "network/index.html", {"posts": page_obj})
 
 
 def login_view(request):
