@@ -50,7 +50,7 @@
             <div class="card-header">
                 <strong>New Post</strong>
             </div>
-            <form class="card-body" action="{% url 'index' %}" method="post">
+            <form class="card-body" action="{% url 'create' %}" method="post">
                 {% csrf_token %}
                 <textarea name="content" class="form-control" placeholder="Share your thoughts." id="post-content"
                     style="height: 100px" autofocus></textarea>

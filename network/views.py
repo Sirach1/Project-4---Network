@@ -22,21 +22,45 @@ def index(request):
         Prefetch("likes", queryset=liked_posts, to_attr="is_liked")
     )[::-1]
     paginator = Paginator(posts, 10)
-    page_number = request.GET.get('page')
+    page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
-    if request.method == "POST":
+
+    return render(request, "network/index.html", {"posts": page_obj})
+
+
+@csrf_exempt
+@login_required
+def create_post(request):
+    if request.method == "POST": 
+        liked_posts = Like.objects.filter(user=request.user)
+        posts = Post.objects.prefetch_related(
+            Prefetch("likes", queryset=liked_posts, to_attr="is_liked")
+        )[::-1]
+        paginator = Paginator(posts, 10)
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
         content = request.POST["content"]
         if not content:
             return render(
                 request,
                 "network/index.html",
-                {"posts": posts, "error": "Please type something."},
+                {"posts": page_obj, "error": "Please type something."},
             )
         post = Post(user=request.user, content=content)
         post.save()
-        return render(request, "network/index.html", {"posts": posts, "success": "Post is published"})
-
-    return render(request, "network/index.html", {"posts": page_obj})
+        posts = Post.objects.prefetch_related(
+            Prefetch("likes", queryset=liked_posts, to_attr="is_liked")
+        )[::-1]
+        paginator = Paginator(posts, 10)
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+        return render(
+            request,
+            "network/index.html",
+            {"posts": page_obj, "success": "Post is published"},
+        )
+    else:
+        return JsonResponse({"error": "Only for post requests."}, status=400)
 
 
 @csrf_exempt
@@ -65,7 +89,7 @@ def profile(request, username):
         Prefetch("likes", queryset=liked_posts, to_attr="is_liked")
     )[::-1]
     paginator = Paginator(posts, 10)
-    page_number = request.GET.get('page')
+    page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
     followed = request.user.following.filter(following=user).exists()
 
@@ -75,10 +99,11 @@ def profile(request, username):
         {"posts": page_obj, "user_profile": user, "followed": followed},
     )
 
+
 @csrf_exempt
 @login_required
 def update_post(request):
-    if not request.method == 'POST':
+    if not request.method == "POST":
         return JsonResponse({"error": "Only post requests are allowed."}, status=400)
     data = json.loads(request.body)
     post = Post.objects.get(pk=data.get("post_id"))
@@ -86,6 +111,7 @@ def update_post(request):
     post.content = content
     post.save()
     return JsonResponse({"message": "Post is updated"}, status=200)
+
 
 @csrf_exempt
 @login_required
@@ -99,19 +125,27 @@ def follow(request):
             )
             follow_rec.delete()
             return JsonResponse(
-                {"message": f"You have unfollowed {user_profile.username}.", "followed": False}, status=201
+                {
+                    "message": f"You have unfollowed {user_profile.username}.",
+                    "followed": False,
+                },
+                status=201,
             )
         except Follow.DoesNotExist:
             new_follow = Follow(follower=request.user, following=user_profile)
             new_follow.save()
             return JsonResponse(
-                {"message": f"You have followed {user_profile.username}.", "followed": True}, status=201
+                {
+                    "message": f"You have followed {user_profile.username}.",
+                    "followed": True,
+                },
+                status=201,
             )
 
-    following = request.user.following.values_list('following', flat=True)
-    posts = Post.objects.filter(user__in=following)
+    following = request.user.following.values_list("following", flat=True)
+    posts = Post.objects.filter(user__in=following)[::-1]
     paginator = Paginator(posts, 10)
-    page_number = request.GET.get('page')
+    page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
     return render(request, "network/index.html", {"posts": page_obj})
 
